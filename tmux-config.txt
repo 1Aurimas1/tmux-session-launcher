@@ -1,0 +1,3 @@
+PROJ_DIR=~/Projects/Other/dir_diff/dir_diff/
+GIT_BRANCH=web_gui
+SESSION_NAME=dir_diff
