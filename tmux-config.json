@@ -1,0 +1,8 @@
+{
+  "projectDir": "~/Projects/Other/dir_compare/dir_compare/",
+  "dbStartCommand": "sudo /etc/init.d/postgresql start",
+  "gitBranch": "web_gui",
+  "sessionName": "dir_diff",
+  "serverStartCommand": "cargo run --release",
+  "clientStartCommand": "pnpm run dev"
+}
