@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 const programName string = "sessionLauncher"
@@ -39,8 +40,32 @@ func main() {
 		os.Exit(1)
 	}
 
-	exec.Command(fmt.Sprintf("cd %v", config.ProjectDir))
-    fmt.Println(fmt.Sprintf("cd %v", config.ProjectDir))
+	//out, err := exec.Command("bash", "-c", fmt.Sprintf("cd %v", config.ProjectDir)).Output()
+	//out, err := exec.Command("cd", config.ProjectDir).Output()
+	//lsOut, err := exec.Command("ls").Output()
+	binary, lookErr := exec.LookPath("bash")
+	if lookErr != nil {
+		panic(lookErr)
+	}
+    fmt.Println(binary)
+
+	args := []string{"bash", "-c", "cd", config.ProjectDir}
+
+	env := os.Environ()
+
+	execErr := syscall.Exec(binary, args, env)
+	if execErr != nil {
+		panic(execErr)
+	}
+
+	//fmt.Println(string(out))
+	if err != nil {
+		panic(err)
+	}
+	//fmt.Println(string(out))
+
+	fmt.Println(fmt.Sprintf("cd %v", config.ProjectDir))
+
 	//exec.Command(config.DbStartCommand)
 	////exec.Command(fmt.Sprintf("git checkout %v", config.GitBranch))
 	//exec.Command(fmt.Sprintf("tmux new-session -d -s %v", config.SessionName))
@@ -61,5 +86,5 @@ func main() {
 
 	//exec.Command(fmt.Sprintf("tmux attach-session -t %v", config.SessionName))
 
-    fmt.Println("program exiting")
+	fmt.Println("program exiting")
 }

@@ -1,5 +1,5 @@
 {
-  "projectDir": "~/Projects/Other/dir_compare/dir_compare/",
+  "projectDir": "~/Projects/Other/dir-compare",
   "dbStartCommand": "sudo /etc/init.d/postgresql start",
   "gitBranch": "web_gui",
   "sessionName": "dir_diff",
