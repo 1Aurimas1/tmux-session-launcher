@@ -18,18 +18,55 @@ type Config struct {
 	ClientStartCommand string
 }
 
+func createNewSession(sessionName string) {
+	cmd := exec.Command("tmux", "new-session", "-d", "-s", sessionName)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+    err := cmd.Run()
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+func createNewWindow() {
+	_ = exec.Command("tmux", "new-window").Run()
+}
+
+func sendKeys(sessionName string, command string) {
+	_ = exec.Command("tmux", "send-keys", "-t", sessionName, command, "Enter").Run()
+}
+
+func selectWindow(sessionName string) {
+	_ = exec.Command("tmux", "select-window", "-t", fmt.Sprintf("%v:2", sessionName)).Run()
+}
+
+func splitWindowHorizontally() {
+	_ = exec.Command("tmux", "split-window", "-h").Run()
+}
+
+func attachSession(sessionName string) {
+    err := exec.Command("tmux", "attach-session", "-t", sessionName).Run()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	fmt.Printf("started")
+
 	if len(os.Args) < 2 {
 		fmt.Printf("Usage: %v <argument>\n", programName)
-		os.Exit(1)
-	}
+        os.Exit(1)
+    }
 
 	filename := os.Args[1]
-
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("File not found")
+		fmt.Printf("Failed to read file")
 		os.Exit(1)
 	}
 
@@ -40,33 +77,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd := exec.Command("tmux", "new-session", "-d", "-s", config.SessionName)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+    createNewSession(config.SessionName)
 
-	err = cmd.Run()
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = exec.Command("tmux", "send-keys", "-t", config.SessionName, "nvim .", "Enter").Run()
+    sendKeys(config.SessionName, "nvim .")
 
 	//if down start /etc/init.d/postgresql status
-	err = exec.Command("tmux", "new-window").Run()
-	err = exec.Command("tmux", "select-window", "-t", fmt.Sprintf("%v:2", config.SessionName)).Run()
-	err = exec.Command("tmux", "send-keys", "-t", config.SessionName, fmt.Sprintf("cd backend && %v", config.ServerStartCommand)).Run()
-	err = exec.Command("tmux", "split-window", "-h").Run()
-	err = exec.Command("tmux", "send-keys", "-t", config.SessionName, fmt.Sprintf("cd frontend && %v", config.ClientStartCommand)).Run()
+    createNewWindow()
+    selectWindow(config.SessionName)
+    initBackend := fmt.Sprintf("cd backend && %v", config.ServerStartCommand)
+    sendKeys(config.SessionName, initBackend)
+    splitWindowHorizontally()
+    initFrontend := fmt.Sprintf("cd frontend && %v", config.ClientStartCommand)
+    sendKeys(config.SessionName, initFrontend)
 
 	// duplicate previous window?
-	err = exec.Command("tmux", "new-window").Run()
-	err = exec.Command("tmux", "send-keys", "-t", config.SessionName, "cd backend", "Enter").Run()
-	err = exec.Command("tmux", "new-window").Run()
-	err = exec.Command("tmux", "send-keys", "-t", config.SessionName, "cd frontend", "Enter").Run()
+    createNewWindow()
+    sendKeys(config.SessionName, "cd backend")
+    createNewWindow()
+    sendKeys(config.SessionName, "cd frontend")
 
-	err = exec.Command("tmux", "attach-session", "-t", config.SessionName).Run()
+    attachSession(config.SessionName)
 
 	fmt.Println("program exiting")
 }
