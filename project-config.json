@@ -1,0 +1,22 @@
+{
+  "projectDir": "~/Projects/Other/dir_compare/dir_compare/",
+  "dbStartCmd": "sudo /etc/init.d/postgresql start",
+  "sessionName": "dir_compare",
+  "windows": [
+      {
+          "commands": ["nvim ."]
+      },
+      {
+          "commands": [
+              "cd backend && cargo run --release", 
+              "cd frontend && pnpm run dev"
+          ]
+      },
+      {
+          "commands": ["cd backend"]
+      },
+      {
+          "commands": ["cd frontend"]
+      }
+  ]
+}

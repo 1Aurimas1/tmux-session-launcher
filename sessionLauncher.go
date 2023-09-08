@@ -5,27 +5,37 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 const programName string = "sessionLauncher"
+var sessionName string
 
-type Config struct {
-	ProjectDir         string
-	DbStartCommand     string
-	GitBranch          string
-	SessionName        string
-	ServerStartCommand string
-	ClientStartCommand string
+type Window struct {
+	Commands []string
 }
 
-func createNewSession(sessionName string) {
+type Config struct {
+	ProjectDir  string
+	DbStartCmd  string
+	SessionName string
+	Windows     []Window
+}
+
+func startDbServer(dbStartCmd string) {
+	if len(dbStartCmd) > 0 {
+		_ = exec.Command("bash", "-c", dbStartCmd).Run()
+	}
+}
+
+func createNewSession() {
 	cmd := exec.Command("tmux", "new-session", "-d", "-s", sessionName)
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-    err := cmd.Run()
+	err := cmd.Run()
 
 	if err != nil {
 		panic(err)
@@ -36,67 +46,73 @@ func createNewWindow() {
 	_ = exec.Command("tmux", "new-window").Run()
 }
 
-func sendKeys(sessionName string, command string) {
+func sendKeys(command string) {
 	_ = exec.Command("tmux", "send-keys", "-t", sessionName, command, "Enter").Run()
 }
 
-func selectWindow(sessionName string) {
-	_ = exec.Command("tmux", "select-window", "-t", fmt.Sprintf("%v:2", sessionName)).Run()
+func selectWindow(windowNum uint8) {
+	_ = exec.Command("tmux", "select-window", "-t", fmt.Sprintf("%v:%v", sessionName, windowNum)).Run()
 }
 
 func splitWindowHorizontally() {
 	_ = exec.Command("tmux", "split-window", "-h").Run()
 }
 
-func attachSession(sessionName string) {
-    err := exec.Command("tmux", "attach-session", "-t", sessionName).Run()
-	if err != nil {
-		panic(err)
-	}
+func attachSession() {
+	cmd := exec.Command("tmux", "attach-session", "-t", sessionName)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	_ = cmd.Run()
 }
 
 func main() {
-	fmt.Printf("started")
-
 	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %v <argument>\n", programName)
-        os.Exit(1)
-    }
+		fmt.Printf("Usage: %v <argument>\n", filepath.Base(os.Args[0]))
+		os.Exit(1)
+	}
 
 	filename := os.Args[1]
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("Failed to read file")
+		fmt.Printf("Failed to read file\n")
 		os.Exit(1)
 	}
 
-	var config Config
+    var config Config
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		fmt.Printf("Failed to parse file")
+		fmt.Printf("Failed to parse file\n")
 		os.Exit(1)
 	}
 
-    createNewSession(config.SessionName)
+    if len(config.SessionName) == 0 {
+		fmt.Printf("Session name is not set in config file\n")
+		os.Exit(1)
+    }
+    sessionName = config.SessionName
 
-    sendKeys(config.SessionName, "nvim .")
+	startDbServer(config.DbStartCmd)
 
-	//if down start /etc/init.d/postgresql status
-    createNewWindow()
-    selectWindow(config.SessionName)
-    initBackend := fmt.Sprintf("cd backend && %v", config.ServerStartCommand)
-    sendKeys(config.SessionName, initBackend)
-    splitWindowHorizontally()
-    initFrontend := fmt.Sprintf("cd frontend && %v", config.ClientStartCommand)
-    sendKeys(config.SessionName, initFrontend)
+	createNewSession()
 
-	// duplicate previous window?
-    createNewWindow()
-    sendKeys(config.SessionName, "cd backend")
-    createNewWindow()
-    sendKeys(config.SessionName, "cd frontend")
+	for i, w := range config.Windows {
+		if i > 0 {
+			createNewWindow()
+		}
 
-    attachSession(config.SessionName)
+		for j, cmd := range w.Commands {
+			if j > 0 {
+				splitWindowHorizontally()
+			}
 
-	fmt.Println("program exiting")
+			sendKeys(cmd)
+		}
+	}
+
+	selectWindow(1)
+
+	attachSession()
 }
