@@ -17,7 +17,7 @@ absLauncherPath="$absScriptDirPath/sessionLauncher.go"
 absConfigPath="$(getAbsDirPath $configPath)/$(basename $configPath)"
 
 dir=$(grep -Po '"projectDir":.*?[^\\]",' $configPath | awk -F ':' '{print $2}' | cut -d "\"" -f 2)
-absoluteProjectPath=$(eval echo $dir)
-cd $absolutePath
+absProjectPath=$(eval echo $dir)
+cd $absProjectPath
 
 go run $absLauncherPath $absConfigPath
